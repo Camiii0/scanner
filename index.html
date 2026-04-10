@@ -3,219 +3,294 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>PDF417 Scanner · Cédula</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.20.0/index.min.js"></script>
+<title>PDF417 Scanner</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0a0a0f;color:#e8e8f0;font-family:'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
-  @keyframes scan{0%{top:2%}50%{top:94%}100%{top:2%}}
-  @keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-  header{width:100%;max-width:480px;padding:24px 16px 8px;display:flex;align-items:center;gap:12px}
-  .logo{width:42px;height:42px;background:linear-gradient(135deg,#00ff88,#0088ff);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
-  h1{font-weight:800;font-size:1.3rem;letter-spacing:-.5px}
-  h1 span{color:#00ff88}
-  .sub{font-family:monospace;font-size:.62rem;color:#555;letter-spacing:2px;text-transform:uppercase}
-  main{width:100%;max-width:480px;padding:8px 16px 40px;display:flex;flex-direction:column;gap:12px}
-  .cam-row{display:flex;align-items:center;gap:8px}
-  .cam-lbl{font-family:monospace;font-size:.65rem;color:#555;text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
-  select{flex:1;background:#12121a;border:1px solid #1e1e2e;color:#e8e8f0;padding:8px 10px;border-radius:8px;font-family:monospace;font-size:.7rem;outline:none}
-  .cam-wrap{position:relative;width:100%;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#000;border:1px solid #1e1e2e}
-  video{width:100%;height:100%;object-fit:cover;display:block}
-  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-  .frame{width:86%;height:28%;position:relative}
-  .corner{position:absolute;width:22px;height:22px;border-color:#00ff88;border-style:solid}
-  .tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
-  .tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
-  .bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
-  .br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
-  .scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#00ff88,transparent);top:0;box-shadow:0 0 8px #00ff88;display:none}
-  .scanline.on{display:block;animation:scan 2s ease-in-out infinite}
-  .hint{position:absolute;bottom:-26px;left:0;right:0;text-align:center;font-family:monospace;font-size:.6rem;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase}
-  .status{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#12121a;border-radius:12px;border:1px solid #1e1e2e;font-family:monospace;font-size:.75rem}
-  .dot{width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0;transition:background .3s}
-  .dot.scanning{background:#00ff88;animation:pulse 1s infinite}
-  .dot.found{background:#00ff88}
-  .dot.error{background:#ff4466}
-  #stMsg{color:#888}
-  .btns{display:flex;gap:10px}
-  .btn{flex:1;padding:14px;border:none;border-radius:12px;font-weight:700;font-size:.95rem;cursor:pointer;font-family:inherit}
-  .btn-start{background:#00ff88;color:#000}
-  .btn-start:disabled{opacity:.4;cursor:not-allowed}
-  .btn-stop{background:#12121a;color:#e8e8f0;border:1px solid #1e1e2e}
-  .btn-stop:disabled{opacity:.4;cursor:not-allowed}
-  .result{background:#12121a;border:1px solid #1e1e2e;border-radius:16px;overflow:hidden;display:none;animation:slideUp .3s ease}
-  .result.show{display:block}
-  .res-head{padding:12px 16px;border-bottom:1px solid #1e1e2e;display:flex;align-items:center;justify-content:space-between}
-  .res-title{font-family:monospace;font-size:.8rem;color:#00ff88;letter-spacing:1px;text-transform:uppercase;font-weight:700}
-  .badge{background:rgba(0,255,136,.12);color:#00ff88;padding:3px 10px;border-radius:99px;font-family:monospace;font-size:.65rem}
-  .res-body{padding:16px}
-  .raw{font-family:monospace;font-size:.7rem;color:#aaa;line-height:1.7;word-break:break-all;background:rgba(0,0,0,.3);padding:12px;border-radius:8px;margin-bottom:14px;border:1px solid #1e1e2e;white-space:pre-wrap}
-  table{width:100%;border-collapse:collapse;font-size:.83rem}
-  tr{border-bottom:1px solid #1e1e2e}
-  tr:last-child{border:none}
-  td{padding:9px 8px;vertical-align:top}
-  td:first-child{color:#555;font-family:monospace;font-size:.67rem;text-transform:uppercase;letter-spacing:.5px;width:38%;padding-right:12px}
-  td:last-child{font-weight:600}
-  .copy-btn{width:100%;margin-top:14px;padding:11px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);color:#00ff88;border-radius:10px;font-family:monospace;font-size:.72rem;cursor:pointer;letter-spacing:1px}
-  .no-cam{text-align:center;padding:40px 20px;font-family:monospace;font-size:.8rem;color:#555;display:none}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080c10;color:#ddeeff;font-family:'Courier New',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes sweep{0%{top:4%}50%{top:88%}100%{top:4%}}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+header{width:100%;max-width:480px;padding:20px 16px 4px;display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;background:linear-gradient(135deg,#00e5ff,#00ff88);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.title{font-size:1.2rem;font-weight:900;letter-spacing:1px}
+.title span{color:#00e5ff}
+.sub{font-size:.58rem;color:#445566;letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+main{width:100%;max-width:480px;padding:10px 16px 40px;display:flex;flex-direction:column;gap:10px}
+.cam-row{display:flex;align-items:center;gap:8px;display:none}
+.cam-lbl{font-size:.6rem;color:#445566;text-transform:uppercase;letter-spacing:2px;white-space:nowrap}
+select{flex:1;background:#0f1419;border:1px solid #1a2030;color:#ddeeff;padding:7px 10px;border-radius:8px;font-family:inherit;font-size:.7rem;outline:none}
+.cam-wrap{position:relative;width:100%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#000;border:1px solid #1a2030;transition:border-color .3s}
+.cam-wrap.active{border-color:#00e5ff;box-shadow:0 0 0 1px #00e5ff33}
+video{width:100%;height:100%;object-fit:cover;display:block}
+canvas#snap{display:none}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.frame{width:88%;height:32%;position:relative}
+.corner{position:absolute;width:20px;height:20px;border-color:#00e5ff;border-style:solid}
+.tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+.bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+.br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+.line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#00e5ff,transparent);top:4%;box-shadow:0 0 8px #00e5ff;display:none;animation:sweep 2s ease-in-out infinite}
+.line.on{display:block}
+.hint{position:absolute;bottom:-24px;left:0;right:0;text-align:center;font-size:.58rem;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase}
+.status{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#0f1419;border-radius:10px;border:1px solid #1a2030}
+.dot{width:8px;height:8px;border-radius:50%;background:#445566;flex-shrink:0;transition:background .3s}
+.dot.scan{background:#00ff88;animation:blink 1s infinite}
+.dot.ok{background:#00ff88}
+.dot.err{background:#ff4060}
+.dot.load{background:#00e5ff;animation:blink .5s infinite}
+#msg{font-size:.73rem;color:#445566;flex:1}
+.btns{display:flex;gap:8px}
+.btn{flex:1;padding:13px 0;border:none;border-radius:10px;font-weight:800;font-size:.88rem;cursor:pointer;font-family:inherit;letter-spacing:1px;transition:all .15s}
+.btn-go{background:#00ff88;color:#000}
+.btn-go:disabled{opacity:.4;cursor:not-allowed}
+.btn-stop{background:#0f1419;color:#ddeeff;border:1px solid #1a2030}
+.btn-stop:disabled{opacity:.3;cursor:not-allowed}
+.result{background:#0f1419;border:1px solid #00ff8844;border-radius:14px;overflow:hidden;display:none}
+.result.show{display:block;animation:pop .3s ease}
+.rh{padding:11px 14px;border-bottom:1px solid #1a2030;display:flex;align-items:center;justify-content:space-between}
+.rtitle{font-size:.72rem;color:#00ff88;letter-spacing:2px;text-transform:uppercase;font-weight:700}
+.badge{background:#00ff8818;color:#00ff88;padding:2px 10px;border-radius:99px;font-size:.6rem;letter-spacing:1px}
+.rb{padding:14px}
+.raw{font-size:.67rem;color:#7799bb;line-height:1.8;word-break:break-all;background:rgba(0,0,0,.4);padding:10px;border-radius:8px;margin-bottom:12px;border:1px solid #1a2030;max-height:80px;overflow-y:auto;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+tr{border-bottom:1px solid #1a2030}
+tr:last-child{border:none}
+td{padding:8px 6px;vertical-align:top}
+td:first-child{color:#445566;font-size:.63rem;text-transform:uppercase;letter-spacing:1px;width:35%;padding-right:10px}
+td:last-child{font-weight:700;color:#ddeeff}
+.actions{display:flex;gap:8px;margin-top:12px}
+.abtn{flex:1;padding:9px;border-radius:8px;font-family:inherit;font-size:.68rem;cursor:pointer;letter-spacing:1px;font-weight:700}
+.abtn-copy{background:#00e5ff12;border:1px solid #00e5ff33;color:#00e5ff}
+.abtn-new{background:#1a2030;border:none;color:#445566}
+.loader{text-align:center;padding:20px;font-size:.75rem;color:#445566}
 </style>
 </head>
 <body>
+
 <header>
-  <div class="logo">🔬</div>
+  <div class="logo">📷</div>
   <div>
-    <h1>PDF<span>417</span> Scanner</h1>
-    <div class="sub">Lector de cédula colombiana</div>
+    <div class="title">PDF<span>417</span> SCANNER</div>
+    <div class="sub">Lector · Cédula Colombiana</div>
   </div>
 </header>
+
 <main>
-  <div class="cam-row" id="camRow" style="display:none">
-    <span class="cam-lbl">Cámara</span>
+  <div class="cam-row" id="camRow">
+    <span class="cam-lbl">CAM</span>
     <select id="camSel" onchange="onCamChange()"></select>
   </div>
-  <div class="cam-wrap">
+
+  <div class="cam-wrap" id="camWrap">
     <video id="video" autoplay playsinline muted></video>
+    <canvas id="snap"></canvas>
     <div class="overlay">
       <div class="frame">
         <div class="corner tl"></div><div class="corner tr"></div>
         <div class="corner bl"></div><div class="corner br"></div>
-        <div class="scanline" id="scanline"></div>
-        <div class="hint">Alinea el código aquí</div>
+        <div class="line" id="line"></div>
+        <div class="hint" id="hintTxt">Toca Iniciar</div>
       </div>
     </div>
   </div>
-  <div class="no-cam" id="noCam">⚠️ No se pudo acceder a la cámara.<br>Verifica los permisos del navegador.</div>
+
   <div class="status">
     <div class="dot" id="dot"></div>
-    <span id="stMsg">Cargando librería...</span>
+    <span id="msg">Cargando detector...</span>
   </div>
+
   <div class="btns">
-    <button class="btn btn-start" id="btnStart" onclick="startScanner()" disabled>▶ Iniciar</button>
-    <button class="btn btn-stop" id="btnStop" onclick="stopScanner()" disabled>■ Detener</button>
+    <button class="btn btn-go" id="btnGo" onclick="startScan()" disabled>▶ INICIAR</button>
+    <button class="btn btn-stop" id="btnStop" onclick="stopScan()" disabled>■ PARAR</button>
   </div>
+
   <div class="result" id="result">
-    <div class="res-head">
-      <span class="res-title">Resultado</span>
+    <div class="rh">
+      <span class="rtitle">RESULTADO</span>
       <span class="badge" id="fmtBadge">PDF417</span>
     </div>
-    <div class="res-body">
-      <div class="raw" id="rawData"></div>
+    <div class="rb">
+      <div class="raw" id="rawOut"></div>
       <table><tbody id="tbl"></tbody></table>
-      <button class="copy-btn" onclick="copyData()">[ COPIAR DATOS ]</button>
+      <div class="actions">
+        <button class="abtn abtn-copy" onclick="copyIt()">COPIAR</button>
+        <button class="abtn abtn-new" onclick="newScan()">NUEVO</button>
+      </div>
     </div>
   </div>
 </main>
+
+<!-- Load ZXing from multiple sources -->
 <script>
-let codeReader=null,scanning=false,cameras=[];
-const video=document.getElementById('video'),dot=document.getElementById('dot'),
-  stMsg=document.getElementById('stMsg'),btnStart=document.getElementById('btnStart'),
-  btnStop=document.getElementById('btnStop'),scanline=document.getElementById('scanline'),
-  resultEl=document.getElementById('result'),rawData=document.getElementById('rawData'),
-  tbl=document.getElementById('tbl'),camSel=document.getElementById('camSel'),
-  camRow=document.getElementById('camRow'),noCam=document.getElementById('noCam');
+(function loadZXing() {
+  const sources = [
+    'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js',
+    'https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.20.0/index.min.js',
+  ];
+  let idx = 0;
+  function tryNext() {
+    if (idx >= sources.length) {
+      document.getElementById('msg').textContent = 'Error: activa JavaScript/CDN en el navegador';
+      document.getElementById('dot').className = 'dot err';
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = sources[idx++];
+    s.onload = () => { window._zxingLoaded = true; init(); };
+    s.onerror = () => { document.head.removeChild(s); tryNext(); };
+    document.head.appendChild(s);
+  }
+  tryNext();
+})();
+</script>
 
-function setStatus(s,m){dot.className='dot '+s;stMsg.textContent=m;}
+<script>
+let reader = null, scanning = false, cameras = [], raf = null;
 
-async function initCameras(){
-  try{
-    const s=await navigator.mediaDevices.getUserMedia({video:true});
-    s.getTracks().forEach(t=>t.stop());
-    const devs=await navigator.mediaDevices.enumerateDevices();
-    cameras=devs.filter(d=>d.kind==='videoinput');
-    if(cameras.length>1){
-      camRow.style.display='flex';
-      cameras.forEach((c,i)=>{
-        const o=document.createElement('option');
-        o.value=c.deviceId;o.textContent=c.label||'Cámara '+(i+1);
-        if(/back|rear|trasera|environment/i.test(c.label))o.selected=true;
+const video   = document.getElementById('video');
+const dot     = document.getElementById('dot');
+const msg     = document.getElementById('msg');
+const btnGo   = document.getElementById('btnGo');
+const btnStop = document.getElementById('btnStop');
+const line    = document.getElementById('line');
+const camWrap = document.getElementById('camWrap');
+const camRow  = document.getElementById('camRow');
+const camSel  = document.getElementById('camSel');
+const result  = document.getElementById('result');
+const rawOut  = document.getElementById('rawOut');
+const tbl     = document.getElementById('tbl');
+const hint    = document.getElementById('hintTxt');
+
+function st(state, text) {
+  dot.className = 'dot ' + (state||'');
+  msg.textContent = text;
+}
+
+async function init() {
+  st('load', 'Solicitando permiso de cámara...');
+  try {
+    const tmp = await navigator.mediaDevices.getUserMedia({ video: true });
+    tmp.getTracks().forEach(t => t.stop());
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    cameras = devs.filter(d => d.kind === 'videoinput');
+    if (cameras.length > 1) {
+      camRow.style.display = 'flex';
+      cameras.forEach((c, i) => {
+        const o = document.createElement('option');
+        o.value = c.deviceId;
+        o.textContent = c.label || 'Cámara ' + (i + 1);
+        if (/back|rear|trasera|2/i.test(c.label)) o.selected = true;
         camSel.appendChild(o);
       });
     }
-    btnStart.disabled=false;
-    setStatus('','Listo. Presiona Iniciar');
-  }catch(e){
-    noCam.style.display='block';
-    setStatus('error','Permiso de cámara denegado');
+    btnGo.disabled = false;
+    st('', 'Listo. Toca INICIAR');
+  } catch(e) {
+    st('err', 'Permiso de cámara denegado. Revisa ajustes.');
   }
 }
 
-async function startScanner(){
-  if(scanning)return;
-  scanning=true;btnStart.disabled=true;btnStop.disabled=false;
-  scanline.classList.add('on');resultEl.classList.remove('show');
-  setStatus('scanning','Escaneando... apunta al código PDF417');
-  const hints=new Map();
-  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
-    ZXing.BarcodeFormat.PDF_417,ZXing.BarcodeFormat.CODE_128,
-    ZXing.BarcodeFormat.QR_CODE,ZXing.BarcodeFormat.DATA_MATRIX]);
-  hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
-  codeReader=new ZXing.BrowserMultiFormatReader(hints);
-  const devId=camSel.value;
-  const constraints=devId?{deviceId:{exact:devId}}:{facingMode:'environment'};
-  try{
-    await codeReader.decodeFromConstraints({video:constraints},video,(res)=>{
-      if(res)onDecoded(res);
+async function startScan() {
+  if (scanning) return;
+  scanning = true;
+  btnGo.disabled = true;
+  btnStop.disabled = false;
+  line.classList.add('on');
+  camWrap.classList.add('active');
+  result.classList.remove('show');
+  hint.textContent = 'Alinea el código PDF417 aquí';
+  st('scan', 'Escaneando... apunta al código');
+
+  const Z = window.ZXing;
+  const hints = new Map();
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
+    Z.BarcodeFormat.PDF_417,
+    Z.BarcodeFormat.CODE_128,
+    Z.BarcodeFormat.QR_CODE,
+    Z.BarcodeFormat.DATA_MATRIX,
+  ]);
+  hints.set(Z.DecodeHintType.TRY_HARDER, true);
+
+  reader = new Z.BrowserMultiFormatReader(hints);
+  const devId = camSel.value;
+  const constraints = devId ? { deviceId: { exact: devId } } : { facingMode: 'environment' };
+
+  try {
+    await reader.decodeFromConstraints({ video: constraints }, video, (res, err) => {
+      if (res) onFound(res);
     });
-  }catch(e){
-    setStatus('error','Error: '+e.message);
-    stopScanner();noCam.style.display='block';
+  } catch(e) {
+    st('err', 'Error cámara: ' + e.message);
+    stopScan();
   }
 }
 
-function stopScanner(){
-  scanning=false;
-  if(codeReader){codeReader.reset();codeReader=null;}
-  scanline.classList.remove('on');
-  btnStart.disabled=false;btnStop.disabled=true;
-  if(!resultEl.classList.contains('show'))setStatus('','Detenido.');
+function stopScan() {
+  scanning = false;
+  if (reader) { reader.reset(); reader = null; }
+  line.classList.remove('on');
+  camWrap.classList.remove('active');
+  btnGo.disabled = false;
+  btnStop.disabled = true;
+  hint.textContent = 'Toca Iniciar';
+  if (!result.classList.contains('show')) st('', 'Detenido.');
 }
 
-function onDecoded(res){
-  const text=res.getText();
-  const fmt=ZXing.BarcodeFormat[res.getBarcodeFormat()]||'BARCODE';
-  stopScanner();
-  setStatus('found','✓ Detectado: '+fmt);
-  document.getElementById('fmtBadge').textContent=fmt;
-  rawData.textContent=text;
+function onFound(res) {
+  const text = res.getText();
+  const Z = window.ZXing;
+  const fmt = Z.BarcodeFormat[res.getBarcodeFormat()] || 'BARCODE';
+  stopScan();
+  st('ok', '✓ Código detectado: ' + fmt);
+  document.getElementById('fmtBadge').textContent = fmt;
+  rawOut.textContent = text;
   buildTable(text);
-  resultEl.classList.add('show');
-  resultEl.scrollIntoView({behavior:'smooth',block:'nearest'});
+  result.classList.add('show');
+  result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function buildTable(text){
-  tbl.innerHTML='';
-  const add=(l,v)=>{if(!v)return;const tr=document.createElement('tr');tr.innerHTML=`<td>${l}</td><td>${v}</td>`;tbl.appendChild(tr);};
-  const m=text.match(/P-(\d+)-(\d+)-([MFmf])-(\d+)-(\d{8})/);
-  if(m){
-    const[,t1,t2,sex,ced,dr]=m;
-    add('Tipo','Persona (P)');add('Código 1',t1);add('Código 2',t2);
-    add('Sexo',sex.toUpperCase()==='M'?'Masculino':'Femenino');
-    add('Cédula',ced);
-    add('Fecha exp.',dr.slice(0,4)+'-'+dr.slice(4,6)+'-'+dr.slice(6,8));
-  }else{
-    const parts=text.split(/[\n\r\t;|~]+/).filter(Boolean);
-    if(parts.length>1)parts.forEach((p,i)=>add('Campo '+(i+1),p.trim()));
-    else add('Datos',text);
+function buildTable(text) {
+  tbl.innerHTML = '';
+  const row = (l, v) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${l}</td><td>${v}</td>`;
+    tbl.appendChild(tr);
+  };
+  const m = text.match(/P-(\d+)-(\d+)-([MFmf])-(\d+)-(\d{8})/);
+  if (m) {
+    const [, t1, t2, sex, ced, dr] = m;
+    row('Tipo', 'Persona (P)');
+    row('Código 1', t1);
+    row('Código 2', t2);
+    row('Sexo', sex.toUpperCase() === 'M' ? 'Masculino' : 'Femenino');
+    row('Cédula', ced);
+    row('Fecha exp.', dr.slice(0,4)+'-'+dr.slice(4,6)+'-'+dr.slice(6,8));
+  } else {
+    const parts = text.split(/[\n\r\t;|~]+/).filter(Boolean);
+    parts.length > 1
+      ? parts.forEach((p, i) => row('Campo ' + (i+1), p.trim()))
+      : row('Datos', text);
   }
 }
 
-function copyData(){
-  navigator.clipboard&&navigator.clipboard.writeText(rawData.textContent).then(()=>{
-    const b=document.querySelector('.copy-btn');
-    b.textContent='[ ✓ COPIADO ]';
-    setTimeout(()=>b.textContent='[ COPIAR DATOS ]',2000);
+function copyIt() {
+  navigator.clipboard && navigator.clipboard.writeText(rawOut.textContent).then(() => {
+    const b = document.querySelector('.abtn-copy');
+    b.textContent = '✓ COPIADO';
+    setTimeout(() => b.textContent = 'COPIAR', 2000);
   });
 }
 
-function onCamChange(){if(scanning){stopScanner();setTimeout(startScanner,300);}}
+function newScan() {
+  result.classList.remove('show');
+  st('', 'Listo. Toca INICIAR');
+}
 
-let tries=0;
-const wait=setInterval(()=>{
-  tries++;
-  if(window.ZXing){clearInterval(wait);initCameras();}
-  if(tries>40){clearInterval(wait);setStatus('error','Error cargando ZXing');}
-},200);
+function onCamChange() {
+  if (scanning) { stopScan(); setTimeout(startScan, 300); }
+}
 </script>
 </body>
 </html>
